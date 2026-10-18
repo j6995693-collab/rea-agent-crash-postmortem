@@ -1,35 +1,38 @@
-# agent-context-thrash
+# rea-agent-crash-postmortem
 
-**Field notes from debugging "the agent gets stuck because the prompt got too long" — with the measurements, the four root causes, and a working fix.**
+**How the REA project (a 207-tool MCP server) took this machine's local agent down entirely — the investigation, the four root causes, and the fix that brought it back.**
+
+> **TL;DR** — The local agent kept collapsing: sessions froze mid-task, the prompt was reported as "too long", and every recovery attempt cost minutes of silence. The cause was the **REA** MCP server (`rea-agents` v6.5.0): it alone added ~198,500 tokens of JSON schema to *every* request, which shoved the conversation into a context-window thrash loop the stock compaction engine could not escape. We instrumented the sessions, found four separate mechanisms behind the collapse, fixed the engine (this repo), and removed the REA mount. The agent has run without a single thrash since.
 
 Every agent harness eventually hits the same wall: a long session fills the context window, the automatic compaction fires, the window fills up again two steps later, and the agent either loops forever or freezes. Claude Code puts it plainly:
 
 > Autocompact is thrashing: the context refilled to the limit within 3 turns of the previous compact, 3 times in a row. A file being read or a tool output is likely too large for the context window. Try reading in smaller chunks, or use /clear to start fresh.
 
-That message names the symptom, not the mechanism. This repository is what actually happened when we instrumented a real 1M-token session and pulled it apart — plus the guarded compaction engine that fixed it, the forensic scripts used to measure it, and how the same method found a second, bigger cause hiding behind the first.
+That message names the symptom, not the mechanism — and in our case its advice (read smaller chunks, start fresh) was useless, because the cost lived in the request envelope, not in the transcript. This repository is what actually happened when we instrumented a real 1M-token session and pulled it apart: the guarded compaction engine that fixed the engine side, the forensic scripts used to measure it, and how the same method found the larger cause hiding behind the smaller one.
 
-Nothing here is tied to one vendor: the diagnosis method works on any harness that logs requests, and the compaction guard is written against the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) compaction seam but reads as a design document for any engine that does "summarize old turns, keep a verbatim tail".
+The diagnosis method is not tied to one harness — it works on anything that logs requests — and the compaction guard is written against the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) compaction seam but reads as a design document for any engine that does "summarize old turns, keep a verbatim tail".
 
 ---
 
-## The two findings, in one screen
+## The four findings behind the crash
 
 | # | Finding | Measured |
 |---|---------|----------|
 | 1 | **A fixed verbatim tail cannot converge.** The engine kept `0.16 × window` verbatim on *every* compaction. When one step adds more than `threshold − header − tail`, the window refills before the next step, so it compacts again at the exact same size, forever. | window 1,000,000 → threshold 800,000, kept tail 160,000; the one real compaction in 39 sessions fired at 792,169 tokens and shadowed 309,476 |
-| 2 | **The newest node is exempt from compaction.** Selection walks back from the end until the tail reaches its budget, so a *single* large tool result survives every compaction intact and refills the window by itself. | one MCP tool contributed 154,738 characters of `inputSchema` alone |
+| 2 | **The newest node is exempt from compaction.** Selection walks back from the end until the tail reaches its budget, so a *single* large tool result survives every compaction intact and refills the window by itself. | one REA tool (`compare_web_captures`) contributed 154,738 characters of `inputSchema` alone |
 
 And the second layer, found by measuring instead of guessing:
 
 | # | Finding | Measured |
 |---|---------|----------|
-| 3 | **The non-compactable part of the request is invisible to the policy.** System prompt + tool schemas ride every request and no amount of message compaction touches them. A 207-tool MCP server cost **198,551 tokens per request** — 84% of the catalog budget. | tool catalog: 233 tools / 821,268 chars ≈ 205,317 tokens → after removing that server: 26 tools / 27,065 chars ≈ **6,766 tokens** |
+| 3 | **The non-compactable part of the request is invisible to the policy.** System prompt + tool schemas ride every request and no amount of message compaction touches them. The **REA** MCP server (207 tools, `rea-agents` v6.5.0) cost **198,551 tokens per request** — 84% of the entire catalog budget, on a server whose own health check reported `healthy: true`. | tool catalog: 233 tools / 821,268 chars ≈ 205,317 tokens → after removing that server: 26 tools / 27,065 chars ≈ **6,766 tokens** |
 | 4 | **Nothing counts failures.** No consecutive-compaction counter, no escalating budget, no circuit breaker, no diagnosis. The engine retried the same futile operation every step. | the stock engine's only exit was a thrown "still above threshold" warning, once per step |
 
-The fix has two halves:
+The fix has three halves — because the REA crash needed all three:
 
-- **`src/` — a guarded compaction engine** (`dsh-compaction-guard`): escalating retention, oversized-node reclaim, a circuit breaker, and one honest steered diagnostic carrying real numbers. 18 tests, seven of them exercising the *real* compaction transaction.
-- **`tools/` — the forensics** that produced every number above, generalized so you can run them on your own session logs.
+- **`src/` — a guarded compaction engine** (`dsh-compaction-guard`): escalating retention, oversized-node reclaim, a circuit breaker, and one honest steered diagnostic carrying real numbers. 20 tests, seven of them exercising the *real* compaction transaction.
+- **`tools/` — the forensics** that produced every number above, generalized so you can run them on your own session logs. This is what pointed at REA in the first place: one MCP server owned 84% of the tool catalog.
+- **the mount itself** — the single biggest win was not code. Unmounting the REA server took the request envelope from **205,317 → 6,766 tokens**, i.e. **198,551 tokens freed per request**, and the crash stopped.
 
 ---
 

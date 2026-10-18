@@ -1,7 +1,7 @@
 {
-  "name": "agent-context-thrash",
+  "name": "rea-agent-crash-postmortem",
   "version": "1.0.0",
-  "description": "Diagnose and fix context-window thrash in LLM agent harnesses: a forensics toolkit plus a guarded compaction engine, from a real 1M-token case study.",
+  "description": "How the REA MCP project (207 tools) crashed a local agent: full postmortem, forensics toolkit, and the guarded compaction engine that fixed it.",
   "license": "MIT",
   "type": "module",
   "main": "src/index.js",
@@ -21,14 +21,18 @@
     "forensics:presentation": "node tools/presentation-compare.mjs"
   },
   "keywords": [
-    "llm",
-    "agent",
+    "rea",
+    "rea-agents",
+    "mcp",
+    "mcp-server",
+    "agent-crash",
     "context-window",
     "compaction",
     "autocompact",
-    "mcp",
-    "debugging",
     "postmortem",
+    "debugging",
+    "llm",
+    "agents",
     "deepseek-harness"
   ],
   "engines": {

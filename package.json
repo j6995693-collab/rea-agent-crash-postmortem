@@ -1,0 +1,37 @@
+{
+  "name": "agent-context-thrash",
+  "version": "1.0.0",
+  "description": "Diagnose and fix context-window thrash in LLM agent harnesses: a forensics toolkit plus a guarded compaction engine, from a real 1M-token case study.",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./core": "./src/core.js"
+  },
+  "files": [
+    "src",
+    "docs",
+    "tools"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "forensics:catalog": "node tools/tool-catalog-size.mjs",
+    "forensics:sessions": "node tools/scan-sessions.mjs",
+    "forensics:presentation": "node tools/presentation-compare.mjs"
+  },
+  "keywords": [
+    "llm",
+    "agent",
+    "context-window",
+    "compaction",
+    "autocompact",
+    "mcp",
+    "debugging",
+    "postmortem",
+    "deepseek-harness"
+  ],
+  "engines": {
+    "node": ">=22"
+  }
+}

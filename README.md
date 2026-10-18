@@ -30,7 +30,7 @@ And the second layer, found by measuring instead of guessing:
 
 The fix has three halves — because the REA crash needed all three:
 
-- **`src/` — a guarded compaction engine** (`dsh-compaction-guard`): escalating retention, oversized-node reclaim, a circuit breaker, and one honest steered diagnostic carrying real numbers. 20 tests, seven of them exercising the *real* compaction transaction.
+- **`src/` — a guarded compaction engine**: escalating retention, oversized-node reclaim, a circuit breaker, and one honest steered diagnostic carrying real numbers. 20 tests, seven of them exercising the *real* compaction transaction.
 - **`tools/` — the forensics** that produced every number above, generalized so you can run them on your own session logs. This is what pointed at REA in the first place: one MCP server owned 84% of the tool catalog.
 - **the mount itself** — the single biggest win was not code. Unmounting the REA server took the request envelope from **205,317 → 6,766 tokens**, i.e. **198,551 tokens freed per request**, and the crash stopped.
 

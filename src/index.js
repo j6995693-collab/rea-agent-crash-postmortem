@@ -7,7 +7,7 @@
  *   `createGuardedEngine(Base)`              — bound to this installation (used by shim.js)
  *   `core.createGuardedCompactionEngine(Base, deps)` — portable, for another harness
  *
- * @module agent-context-thrash
+ * @module rea-agent-crash-postmortem
  */
 
 import os from 'node:os';
@@ -54,7 +54,7 @@ export function resolveModulesRoot() {
     if (existsSync(path.join(candidate, '@deepseek-ai/dsh-compaction/lib/index.js'))) return candidate;
   }
   throw new Error(
-    'agent-context-thrash: cannot locate the harness module tree. '
+    'rea-agent-crash-postmortem: cannot locate the harness module tree. '
     + 'Set DSH_MODULES_ROOT to the directory that contains @deepseek-ai/dsh-compaction.',
   );
 }

@@ -18,7 +18,7 @@ try {
 	const { createGuardedEngine } = await import(GUARD_PATH);
 	Engine = await createGuardedEngine(BaseCompactionEngine);
 } catch (error) {
-	console.warn(`[agent-context-thrash] guard unavailable (${error?.message ?? error}); using stock compaction`);
+	console.warn(`[rea-agent-crash-postmortem] guard unavailable (${error?.message ?? error}); using stock compaction`);
 }
 
 export { Engine as BasicCompactionEngine, Engine as default };

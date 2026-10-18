@@ -289,7 +289,7 @@ test('F: the steered diagnostic is an ordinary, relayable user message', { skip:
   assert.equal(steered.length, 1);
   assert.equal(typeof steered[0].id, 'string');
   assert.equal(steered[0].source.kind, 'plugin');
-  assert.equal(steered[0].source.plugin, 'agent-context-thrash');
+  assert.equal(steered[0].source.plugin, 'rea-agent-crash-postmortem');
   assert.ok(steered[0].content.every((block) => block.type === 'text'));
   assert.match(steered[0].content[0].text, /\/clear/);
 });

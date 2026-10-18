@@ -13,7 +13,7 @@
  *   3. breaker— N consecutive compactions that failed to hold: stop
  *   4. compact— with a tail budget that halves on each consecutive failure
  *
- * @module agent-context-thrash/core
+ * @module rea-agent-crash-postmortem/core
  */
 
 /** Guard tuning. Constants on purpose: they must not depend on host config keys. */
@@ -363,7 +363,7 @@ export function createGuardedCompactionEngine(BaseCompactionEngine, deps) {
       try {
         agent.steer(createUserMessage({
           content: [{ type: 'text', text: guardDiagnostic(facts) }],
-          source: { kind: 'plugin', plugin: 'agent-context-thrash' },
+          source: { kind: 'plugin', plugin: 'rea-agent-crash-postmortem' },
         }));
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
